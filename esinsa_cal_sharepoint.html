@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>ESINSA – Vacaciones 2026</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-graph-client/3.0.0/graph-js-sdk.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f0f2f5;font-size:13px}
+header{background:#1e2a4a;color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+header h1{font-size:18px}
+.toolbar{background:#fff;padding:10px 20px;border-bottom:1px solid #ddd;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+button{padding:6px 14px;border:1px solid #ccc;border-radius:6px;background:#f5f5f5;cursor:pointer;font-size:13px}
+button.active{background:#1e2a4a;color:#fff;border-color:#1e2a4a}
+button:hover:not(.active){background:#e8e8e8}
+.nav{font-size:18px;padding:4px 10px}
+#mesLabel{font-weight:700;font-size:15px;min-width:140px;text-align:center}
+.main{padding:16px 20px}
+.legend{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.leg{display:flex;align-items:center;gap:5px;padding:3px 10px 3px 6px;border:1px solid #ddd;border-radius:20px;cursor:pointer;font-size:12px;background:#fff;user-select:none}
+.leg.off{opacity:0.3}
+.dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.stats{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.stat{background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px 16px;font-size:12px;color:#555}
+.stat b{display:block;font-size:20px;color:#1e2a4a}
+.stat.warn b{color:#e67e22}
+.stat.err b{color:#c0392b}
+.wrap{background:#fff;border:1px solid #ddd;border-radius:10px;overflow:auto}
+table{border-collapse:collapse;width:100%}
+th{background:#f0f0f0;font-size:11px;padding:4px 2px;text-align:center;border-bottom:1px solid #ccc;position:sticky;top:0;z-index:2;white-space:nowrap}
+th.emp{text-align:left;padding-left:8px;min-width:110px}
+td{padding:1px;border-bottom:1px solid #f0f0f0}
+td.emp{padding:3px 6px;font-size:11px;font-weight:500;position:sticky;left:0;background:#fff;border-right:1px solid #e0e0e0;z-index:1;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis}
+td.day{width:22px;text-align:center}
+.blk{width:100%;height:18px;border-radius:3px;display:block}
+.blk.clickable{cursor:pointer}
+.blk.clickable:hover{opacity:0.75;outline:2px solid #1e2a4a}
+tr.dept td{background:#f7f7fb;font-size:11px;font-weight:700;color:#444;padding:5px 8px;border-top:2px solid #ccc;letter-spacing:.5px;text-transform:uppercase}
+.ann-blk{border-radius:4px;padding:2px 3px;font-size:11px;font-weight:600;display:block;text-align:center}
+.save{background:#27ae60!important;color:#fff!important;border-color:#27ae60!important}
+.edit-btn{background:#2563eb!important;color:#fff!important;border-color:#2563eb!important}
+.del-btn{background:#c0392b!important;color:#fff!important;border-color:#c0392b!important;font-size:11px!important;padding:4px 8px!important}
+.lock-btn{background:#7c3aed!important;color:#fff!important;border-color:#7c3aed!important}
+.pend-table{width:100%;border-collapse:collapse}
+.pend-table th{background:#f0f0f0;padding:7px 10px;font-size:12px;text-align:left;border-bottom:1px solid #ccc}
+.pend-table td{padding:6px 10px;font-size:12px;border-bottom:1px solid #f0f0f0}
+.bar-bg{background:#eee;border-radius:4px;height:8px;overflow:hidden;display:inline-block;width:80px;vertical-align:middle}
+.bar-fg{height:8px;border-radius:4px}
+.modal-bg{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);z-index:100;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:12px;padding:24px;min-width:340px;max-width:500px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.2)}
+.modal h3{margin-bottom:16px;color:#1e2a4a;font-size:16px}
+.modal label{font-size:12px;color:#555;display:flex;flex-direction:column;gap:3px;margin-bottom:10px}
+.modal input,.modal select{font-size:13px;padding:6px 9px;border:1px solid #ccc;border-radius:6px}
+.modal-btns{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
+.view-banner{background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:8px 14px;font-size:12px;color:#92400e;display:none;align-items:center;gap:8px;margin-bottom:10px}
+.view-banner.show{display:flex}
+.sync-banner{background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:8px 14px;font-size:12px;color:#0369a1;display:none;align-items:center;gap:8px;margin-bottom:10px}
+.sync-banner.show{display:flex}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid #ccc;border-top-color:#1e2a4a;border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* Login */
+.login-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:#f0f2f5;z-index:200;display:flex;align-items:center;justify-content:center}
+.login-box{background:#fff;border-radius:16px;padding:40px;max-width:420px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.12);text-align:center}
+.login-box h2{color:#1e2a4a;margin-bottom:8px;font-size:22px}
+.login-box p{color:#666;font-size:13px;margin-bottom:24px;line-height:1.5}
+.ms-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:14px;font-weight:600;color:#1e2a4a;margin-bottom:12px;transition:background 0.15s}
+.ms-btn:hover{background:#f0f4ff}
+.ms-btn img{width:20px;height:20px}
+.viewer-btn{background:#f8f8f8;color:#555;font-weight:400;border-color:#e0e0e0}
+.pwd-section{margin-top:12px;border-top:1px solid #eee;padding-top:16px}
+.pwd-section input{width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:13px;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<!-- PANTALLA DE LOGIN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <div style="width:64px;height:64px;background:#1e2a4a;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px">📅</div>
+    <h2>ESINSA — Vacaciones 2026</h2>
+    <p>Accede con tu cuenta de Microsoft para ver el calendario, o introduce la contraseña de administrador para editar.</p>
+    
+    <button class="ms-btn" onclick="loginMicrosoft()">
+      <svg width="20" height="20" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+      Entrar con Microsoft 365
+    </button>
+    
+    <div class="pwd-section">
+      <p style="font-size:11px;color:#999;margin-bottom:10px">¿Eres administrador? Introduce la contraseña:</p>
+      <input type="password" id="loginPwd" placeholder="Contraseña de administrador..." onkeydown="if(event.key==='Enter')loginAdmin()">
+      <p id="loginErr" style="color:#c0392b;font-size:12px;display:none;margin-bottom:8px">Contraseña incorrecta</p>
+      <button class="lock-btn" style="width:100%;padding:10px" onclick="loginAdmin()">🔓 Entrar como administrador</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AÑADIR / EDITAR -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3 id="modalTitle">Añadir vacaciones</h3>
+    <label>Empleado<select id="mEmp" style="min-width:220px"></select></label>
+    <label>Fecha inicio<input type="date" id="mIni" value="2026-06-01"></label>
+    <label>Fecha fin<input type="date" id="mFin" value="2026-06-05"></label>
+    <label>Tipo
+      <select id="mTipo" onchange="toggleOtroTipo()">
+        <option value="vac">Vacaciones</option>
+        <option value="boda">Ausencia por boda</option>
+        <option value="examen">Ausencia por examen</option>
+        <option value="otro">Otro (especificar)...</option>
+      </select>
+    </label>
+    <label id="otroTipoLabel" style="display:none">Descripción
+      <input type="text" id="mTipoOtro" placeholder="Ej: Mudanza, Médico..." maxlength="50">
+    </label>
+    <div class="modal-btns">
+      <button onclick="closeModal()">Cancelar</button>
+      <button class="save" id="modalSaveBtn" onclick="modalGuardar()">✔ Guardar</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <h1>ESINSA — Calendario de Vacaciones 2026</h1>
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span id="syncStatus" style="font-size:11px;color:#aac"></span>
+    <span id="modoLabel" style="font-size:11px;padding:3px 10px;border-radius:20px;background:#ffffff22;border:1px solid #ffffff44"></span>
+    <button id="btnCambiarModo" onclick="volverLogin()" style="font-size:11px;padding:3px 10px;background:#ffffff22;border:1px solid #ffffff66;color:#fff;border-radius:6px">Cambiar modo</button>
+  </div>
+</header>
+
+<div class="toolbar">
+  <button id="bMes" class="active" onclick="setView('mes')">📅 Mensual</button>
+  <button id="bAnu" onclick="setView('anual')">📊 Anual</button>
+  <button id="bPend" class="admin-only" style="display:none" onclick="setView('pend')">⏳ Pendientes</button>
+  <span style="border-left:1px solid #ddd;height:24px;margin:0 4px"></span>
+  <button class="nav" id="bPrev" onclick="prevMes()">◀</button>
+  <span id="mesLabel"></span>
+  <button class="nav" id="bNext" onclick="nextMes()">▶</button>
+  <span style="border-left:1px solid #ddd;height:24px;margin:0 4px"></span>
+  <label style="font-size:12px;color:#555;display:flex;align-items:center;gap:6px">🔍
+    <select id="filtroEmp" onchange="setFiltroEmp()" style="font-size:12px;padding:4px 8px;border:1px solid #ccc;border-radius:6px;max-width:180px">
+      <option value="">— Todos —</option>
+    </select>
+  </label>
+  <button id="btnFiltroMes" onclick="toggleFiltroMes()">📆 Solo este mes</button>
+  <button id="btnFiltroHoy" onclick="toggleFiltroHoy()">📍 Hoy / semana</button>
+  <button onclick="resetTodosFiltros()" id="btnResetFiltro" style="display:none;background:#fee2e2;border-color:#fca5a5;color:#b91c1c;font-size:12px;padding:4px 10px">✕ Quitar filtros</button>
+  <button onclick="sincronizar()" style="font-size:12px;padding:4px 10px;background:#e0f2fe;border-color:#7dd3fc;color:#0369a1" title="Recargar datos de SharePoint">🔄 Actualizar</button>
+</div>
+
+<div class="main">
+  <div class="view-banner" id="viewBanner">👁 Modo <b>Solo lectura</b> — Puedes ver el calendario pero no modificar nada.</div>
+  <div class="sync-banner" id="syncBanner">🔄 Sincronizando con SharePoint...</div>
+  <div class="legend" id="leyenda"></div>
+  <div class="stats" id="stats"></div>
+  <div class="wrap" id="cal"><div style="padding:40px;text-align:center;color:#888">Cargando datos...</div></div>
+  <div class="add-section admin-only" id="addSection" style="display:none;margin-top:14px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button onclick="openModal('add')">＋ Añadir vacaciones / ausencia</button>
+      <button class="edit-btn" onclick="setView('gestionar')">✏️ Gestionar / Editar vacaciones</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// CONFIGURACIÓN — ajusta estos valores
+// ══════════════════════════════════════════════════════════════════════════════
+const ADMIN_PWD    = "esinsa2026";           // cambia la contraseña aquí
+const SP_SITE      = "https://esinsasl.sharepoint.com/sites/VacacionesESINSA";
+const SP_LIST_NAME = "VACACIONES ESINSA";    // nombre exacto de la lista
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ─── ESTRUCTURA EMPRESA ───────────────────────────────────────────────────────
+const DEPT_ORDER = ["CEO","Dirección","Finanzas","Taller","Almacén","Tienda","Back Office"];
+const DCOL = {
+  "CEO":"#0f172a","Dirección":"#1e2a4a","Finanzas":"#16a34a",
+  "Taller":"#7c3aed","Almacén":"#0891b2","Tienda":"#e11d48","Back Office":"#db2777"
+};
+const PDEPT = {
+  "CEO":"CEO","Director Operaciones":"Dirección","Director Taller":"Dirección","Director RRHH":"Dirección",
+  "Finanzas":"Finanzas","Oficina Técnica":"Taller","Operarios Taller":"Taller",
+  "Jefe Almacén":"Almacén","Jefe Logística":"Almacén","Operarios Almacén":"Almacén",
+  "Tienda":"Tienda","Supervisora Back Office":"Back Office","Técnico Tornillería":"Back Office",
+  "Técnico Juntas":"Back Office","Data Entry":"Back Office","Comercial Externo":"Back Office"
+};
+const PUESTOS = {
+  "QUINTANA ARGERICH, JOSEP MARIA":"CEO",
+  "DE LA RUA VALLESPI, JOSE":"Director Operaciones",
+  "BADIA SALA, ROGER":"Director Taller",
+  "FERRER PEY, Montse":"Director RRHH",
+  "CRESPO PEREZ, Glorifer Janeth":"Finanzas",
+  "CASCOS ZARAGOZA, DAVID":"Oficina Técnica",
+  "CABALLERO MUÑZ, ADRIAN":"Operarios Taller",
+  "BARRERO MORENO, CARLOS":"Operarios Taller",
+  "CASTELLANOS CORONADO, CIRIACO":"Operarios Taller",
+  "FERNANDEZ PEREZ, VIDAL":"Operarios Taller",
+  "MARTINEZ MARCHAMALO, JAVIER":"Operarios Taller",
+  "MONTES PAVON, Antonio Javier":"Operarios Taller",
+  "GONZALEZ NUÑEZ, JOSé RAMóN":"Jefe Almacén",
+  "ZININI EL OUERIAGHLI, YASSIN":"Jefe Logística",
+  "CUENCA LATORRE, ANTONIO":"Operarios Almacén",
+  "JODAR GARRIDO, JAVIER J":"Operarios Almacén",
+  "DI SIBIO, GIANNI":"Tienda",
+  "JIMENEZ VELASCO, EVA MARIA":"Tienda",
+  "YEPES DOLERA, ELISABET":"Supervisora Back Office",
+  "LAURENTIN RODRIGUEZ, MANUEL GERARDO":"Técnico Tornillería",
+  "RAMIREZ ACEVEDO, ASDRUBAL":"Técnico Tornillería",
+  "LEVANO OSORIO, GLORIA ELISABETH":"Técnico Juntas",
+  "EL FIDALI AGUEJDAD, ILYAS":"Técnico Juntas",
+  "LLAMAS AVALOS, JOEL":"Data Entry",
+  "NAVARRO RIVERO, MARIA ELENA":"Data Entry",
+  "GONZALEZ BALAA, JENIFER":"Comercial Externo",
+  "QUINTANA CASAS, MARC":"Comercial Externo"
+};
+const MAX = {
+  "BADIA SALA, ROGER":31,"BARRERO MORENO, CARLOS":26,"CABALLERO MUÑZ, ADRIAN":22,
+  "CASCOS ZARAGOZA, DAVID":22,"CASTELLANOS CORONADO, CIRIACO":25,"CRESPO PEREZ, Glorifer Janeth":25.5,
+  "CUENCA LATORRE, ANTONIO":22,"DE LA RUA VALLESPI, JOSE":31,"DI SIBIO, GIANNI":28,
+  "EL FIDALI AGUEJDAD, ILYAS":22,"FERNANDEZ PEREZ, VIDAL":17,"FERRER PEY, Montse":33,
+  "GONZALEZ BALAA, JENIFER":23,"GONZALEZ NUÑEZ, JOSé RAMóN":22,"JIMENEZ VELASCO, EVA MARIA":22,
+  "JODAR GARRIDO, JAVIER J":25,"LAURENTIN RODRIGUEZ, MANUEL GERARDO":28,"LEVANO OSORIO, GLORIA ELISABETH":17,
+  "LLAMAS AVALOS, JOEL":22,"MARTINEZ MARCHAMALO, JAVIER":27,"MONTES PAVON, Antonio Javier":18,
+  "NAVARRO RIVERO, MARIA ELENA":27,"QUINTANA ARGERICH, Josep MARIA":22,"QUINTANA CASAS, MARC":22,
+  "RAMIREZ ACEVEDO, ASDRUBAL":22,"YEPES DOLERA, ELISABET":22,"ZININI EL OUERIAGHLI, YASSIN":25
+};
+
+// ─── ESTADO ───────────────────────────────────────────────────────────────────
+let VACS = [];
+let view="mes", mes=new Date().getMonth(), hideDept=new Set(), editIdx=null;
+let filtroEmpVal="", filtroMes=false, filtroHoy=false;
+let isAdmin=false;
+let spToken=null; // token de SharePoint
+let gFiltroVal="";
+
+// ─── SHAREPOINT API ───────────────────────────────────────────────────────────
+// Usamos la API REST de SharePoint con cookie de sesión (mismo dominio)
+// El archivo debe estar alojado en el mismo SharePoint para que funcione
+
+async function spFetch(url, opts={}) {
+  // Obtener digest para escritura
+  const headers = {"Accept":"application/json;odata=verbose","Content-Type":"application/json;odata=verbose"};
+  if(opts.method && opts.method!=="GET") {
+    try {
+      const dig = await fetch(`${SP_SITE}/_api/contextinfo`, {method:"POST",headers:{"Accept":"application/json;odata=verbose","Content-Type":"application/json;odata=verbose"},credentials:"include"});
+      const digJson = await dig.json();
+      headers["X-RequestDigest"] = digJson.d.GetContextWebInformation.FormDigestValue;
+    } catch(e) { console.warn("No se pudo obtener digest", e); }
+  }
+  return fetch(url, {...opts, headers:{...headers,...(opts.headers||{})}, credentials:"include"});
+}
+
+async function cargarDeSharePoint() {
+  mostrarSyncBanner(true);
+  try {
+    const url = `${SP_SITE}/_api/web/lists/getbytitle('${encodeURIComponent(SP_LIST_NAME)}')/items?$select=Id,Empleado,FechaInicio,FechaFin,TipoAusencia&$top=2000`;
+    const res = await spFetch(url);
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const data = await res.json();
+    VACS = data.d.results.map(item => ({
+      spId: item.Id,
+      e: item.Empleado || "",
+      i: item.FechaInicio ? item.FechaInicio.substring(0,10) : "",
+      f: item.FechaFin   ? item.FechaFin.substring(0,10)    : "",
+      t: item.TipoAusencia || "vac"
+    })).filter(v=>v.e&&v.i&&v.f);
+    setSyncStatus("✅ Sincronizado · "+new Date().toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"}));
+  } catch(err) {
+    console.error("Error cargando SharePoint:", err);
+    setSyncStatus("⚠️ Sin conexión SharePoint — datos locales");
+    // Cargar datos locales como fallback
+    cargarDatosLocales();
+  }
+  mostrarSyncBanner(false);
+  renderStats(); render();
+}
+
+async function guardarEnSharePoint(vac) {
+  // vac = {e, i, f, t}  → crear nuevo elemento
+  setSyncStatus("💾 Guardando...");
+  const body = JSON.stringify({
+    "__metadata": {"type": `SP.Data.${SP_LIST_NAME.replace(/ /g,"")}ListItem`},
+    "Title": vac.e.substring(0,10)+"_"+vac.i,
+    "Empleado": vac.e,
+    "FechaInicio": vac.i+"T00:00:00Z",
+    "FechaFin": vac.f+"T00:00:00Z",
+    "TipoAusencia": vac.t
+  });
+  try {
+    const url = `${SP_SITE}/_api/web/lists/getbytitle('${encodeURIComponent(SP_LIST_NAME)}')/items`;
+    const res = await spFetch(url, {method:"POST", body});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const data = await res.json();
+    setSyncStatus("✅ Guardado");
+    return data.d.Id;
+  } catch(err) {
+    console.error("Error guardando:", err);
+    setSyncStatus("⚠️ Error al guardar en SharePoint");
+    return null;
+  }
+}
+
+async function actualizarEnSharePoint(spId, vac) {
+  setSyncStatus("💾 Actualizando...");
+  const body = JSON.stringify({
+    "__metadata": {"type": `SP.Data.${SP_LIST_NAME.replace(/ /g,"")}ListItem`},
+    "Empleado": vac.e,
+    "FechaInicio": vac.i+"T00:00:00Z",
+    "FechaFin": vac.f+"T00:00:00Z",
+    "TipoAusencia": vac.t
+  });
+  try {
+    const url = `${SP_SITE}/_api/web/lists/getbytitle('${encodeURIComponent(SP_LIST_NAME)}')/items(${spId})`;
+    const res = await spFetch(url, {method:"POST", body, headers:{"IF-MATCH":"*","X-HTTP-Method":"MERGE"}});
+    if(!res.ok && res.status!==204) throw new Error("HTTP "+res.status);
+    setSyncStatus("✅ Actualizado");
+  } catch(err) {
+    console.error("Error actualizando:", err);
+    setSyncStatus("⚠️ Error al actualizar en SharePoint");
+  }
+}
+
+async function eliminarDeSharePoint(spId) {
+  setSyncStatus("🗑 Eliminando...");
+  try {
+    const url = `${SP_SITE}/_api/web/lists/getbytitle('${encodeURIComponent(SP_LIST_NAME)}')/items(${spId})`;
+    const res = await spFetch(url, {method:"POST", headers:{"IF-MATCH":"*","X-HTTP-Method":"DELETE"}});
+    if(!res.ok && res.status!==204) throw new Error("HTTP "+res.status);
+    setSyncStatus("✅ Eliminado");
+  } catch(err) {
+    console.error("Error eliminando:", err);
+    setSyncStatus("⚠️ Error al eliminar de SharePoint");
+  }
+}
+
+function setSyncStatus(msg) {
+  document.getElementById("syncStatus").textContent=msg;
+}
+function mostrarSyncBanner(show) {
+  document.getElementById("syncBanner").classList.toggle("show", show);
+}
+async function sincronizar() { await cargarDeSharePoint(); }
+
+// ─── DATOS LOCALES (fallback si no hay conexión SP) ───────────────────────────
+function cargarDatosLocales() {
+  VACS = [
+    {e:"BADIA SALA, ROGER",i:"2026-08-17",f:"2026-08-28",t:"vac"},
+    {e:"BADIA SALA, ROGER",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"BARRERO MORENO, CARLOS",i:"2026-01-30",f:"2026-01-30",t:"vac"},
+    {e:"BARRERO MORENO, CARLOS",i:"2026-02-18",f:"2026-02-20",t:"vac"},
+    {e:"BARRERO MORENO, CARLOS",i:"2026-08-03",f:"2026-08-14",t:"vac"},
+    {e:"BARRERO MORENO, CARLOS",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"CABALLERO MUÑZ, ADRIAN",i:"2026-01-08",f:"2026-01-08",t:"vac"},
+    {e:"CABALLERO MUÑZ, ADRIAN",i:"2026-01-13",f:"2026-01-13",t:"vac"},
+    {e:"CABALLERO MUÑZ, ADRIAN",i:"2026-02-04",f:"2026-02-04",t:"vac"},
+    {e:"CABALLERO MUÑZ, ADRIAN",i:"2026-09-17",f:"2026-09-18",t:"vac"},
+    {e:"CABALLERO MUÑZ, ADRIAN",i:"2026-09-19",f:"2026-10-05",t:"boda"},
+    {e:"CABALLERO MUÑZ, ADRIAN",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"CASCOS ZARAGOZA, DAVID",i:"2026-05-11",f:"2026-05-15",t:"vac"},
+    {e:"CASCOS ZARAGOZA, DAVID",i:"2026-06-22",f:"2026-06-23",t:"vac"},
+    {e:"CASCOS ZARAGOZA, DAVID",i:"2026-08-03",f:"2026-08-14",t:"vac"},
+    {e:"CASCOS ZARAGOZA, DAVID",i:"2026-12-07",f:"2026-12-07",t:"vac"},
+    {e:"CASCOS ZARAGOZA, DAVID",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"CASTELLANOS CORONADO, CIRIACO",i:"2026-01-02",f:"2026-01-05",t:"vac"},
+    {e:"CASTELLANOS CORONADO, CIRIACO",i:"2026-03-17",f:"2026-03-17",t:"vac"},
+    {e:"CASTELLANOS CORONADO, CIRIACO",i:"2026-05-11",f:"2026-05-15",t:"vac"},
+    {e:"CASTELLANOS CORONADO, CIRIACO",i:"2026-06-01",f:"2026-06-05",t:"vac"},
+    {e:"CASTELLANOS CORONADO, CIRIACO",i:"2026-08-20",f:"2026-08-28",t:"vac"},
+    {e:"CASTELLANOS CORONADO, CIRIACO",i:"2026-12-07",f:"2026-12-07",t:"vac"},
+    {e:"CASTELLANOS CORONADO, CIRIACO",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"CRESPO PEREZ, Glorifer Janeth",i:"2026-02-16",f:"2026-02-16",t:"vac"},
+    {e:"CRESPO PEREZ, Glorifer Janeth",i:"2026-04-21",f:"2026-04-21",t:"vac"},
+    {e:"CRESPO PEREZ, Glorifer Janeth",i:"2026-06-25",f:"2026-06-26",t:"vac"},
+    {e:"CRESPO PEREZ, Glorifer Janeth",i:"2026-07-20",f:"2026-07-21",t:"vac"},
+    {e:"CRESPO PEREZ, Glorifer Janeth",i:"2026-08-10",f:"2026-08-18",t:"vac"},
+    {e:"CRESPO PEREZ, Glorifer Janeth",i:"2026-09-07",f:"2026-09-10",t:"vac"},
+    {e:"CRESPO PEREZ, Glorifer Janeth",i:"2026-11-24",f:"2026-11-24",t:"vac"},
+    {e:"CRESPO PEREZ, Glorifer Janeth",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"CUENCA LATORRE, ANTONIO",i:"2026-08-03",f:"2026-08-14",t:"vac"},
+    {e:"CUENCA LATORRE, ANTONIO",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"DE LA RUA VALLESPI, JOSE",i:"2026-03-30",f:"2026-03-31",t:"vac"},
+    {e:"DE LA RUA VALLESPI, JOSE",i:"2026-04-01",f:"2026-04-10",t:"vac"},
+    {e:"DE LA RUA VALLESPI, JOSE",i:"2026-06-22",f:"2026-06-26",t:"vac"},
+    {e:"DE LA RUA VALLESPI, JOSE",i:"2026-08-03",f:"2026-08-18",t:"vac"},
+    {e:"DE LA RUA VALLESPI, JOSE",i:"2026-09-21",f:"2026-09-22",t:"vac"},
+    {e:"DE LA RUA VALLESPI, JOSE",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"DI SIBIO, GIANNI",i:"2026-01-02",f:"2026-01-09",t:"vac"},
+    {e:"DI SIBIO, GIANNI",i:"2026-02-20",f:"2026-02-20",t:"vac"},
+    {e:"DI SIBIO, GIANNI",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"EL FIDALI AGUEJDAD, ILYAS",i:"2026-03-25",f:"2026-04-10",t:"vac"},
+    {e:"EL FIDALI AGUEJDAD, ILYAS",i:"2026-08-20",f:"2026-08-28",t:"vac"},
+    {e:"EL FIDALI AGUEJDAD, ILYAS",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"FERNANDEZ PEREZ, VIDAL",i:"2026-06-11",f:"2026-06-12",t:"vac"},
+    {e:"FERNANDEZ PEREZ, VIDAL",i:"2026-07-22",f:"2026-07-24",t:"vac"},
+    {e:"FERNANDEZ PEREZ, VIDAL",i:"2026-08-03",f:"2026-08-12",t:"vac"},
+    {e:"FERNANDEZ PEREZ, VIDAL",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"FERRER PEY, Montse",i:"2026-04-20",f:"2026-04-20",t:"vac"},
+    {e:"FERRER PEY, Montse",i:"2026-07-27",f:"2026-08-07",t:"vac"},
+    {e:"FERRER PEY, Montse",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"GONZALEZ BALAA, JENIFER",i:"2026-01-02",f:"2026-01-05",t:"vac"},
+    {e:"GONZALEZ BALAA, JENIFER",i:"2026-03-30",f:"2026-03-31",t:"vac"},
+    {e:"GONZALEZ BALAA, JENIFER",i:"2026-07-06",f:"2026-07-10",t:"vac"},
+    {e:"GONZALEZ BALAA, JENIFER",i:"2026-08-07",f:"2026-08-18",t:"vac"},
+    {e:"GONZALEZ BALAA, JENIFER",i:"2026-10-09",f:"2026-10-09",t:"vac"},
+    {e:"GONZALEZ BALAA, JENIFER",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"GONZALEZ NUÑEZ, JOSé RAMóN",i:"2026-02-13",f:"2026-02-13",t:"vac"},
+    {e:"GONZALEZ NUÑEZ, JOSé RAMóN",i:"2026-04-29",f:"2026-04-30",t:"vac"},
+    {e:"GONZALEZ NUÑEZ, JOSé RAMóN",i:"2026-06-15",f:"2026-06-19",t:"vac"},
+    {e:"GONZALEZ NUÑEZ, JOSé RAMóN",i:"2026-08-20",f:"2026-08-28",t:"vac"},
+    {e:"GONZALEZ NUÑEZ, JOSé RAMóN",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"JIMENEZ VELASCO, EVA MARIA",i:"2026-06-01",f:"2026-06-05",t:"vac"},
+    {e:"JIMENEZ VELASCO, EVA MARIA",i:"2026-08-10",f:"2026-08-18",t:"vac"},
+    {e:"JIMENEZ VELASCO, EVA MARIA",i:"2026-10-19",f:"2026-10-23",t:"vac"},
+    {e:"JIMENEZ VELASCO, EVA MARIA",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"JODAR GARRIDO, JAVIER J",i:"2026-03-16",f:"2026-03-16",t:"vac"},
+    {e:"JODAR GARRIDO, JAVIER J",i:"2026-08-03",f:"2026-08-18",t:"vac"},
+    {e:"JODAR GARRIDO, JAVIER J",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"LAURENTIN RODRIGUEZ, MANUEL GERARDO",i:"2026-03-06",f:"2026-03-06",t:"vac"},
+    {e:"LAURENTIN RODRIGUEZ, MANUEL GERARDO",i:"2026-04-14",f:"2026-04-15",t:"vac"},
+    {e:"LAURENTIN RODRIGUEZ, MANUEL GERARDO",i:"2026-08-24",f:"2026-09-04",t:"vac"},
+    {e:"LAURENTIN RODRIGUEZ, MANUEL GERARDO",i:"2026-12-16",f:"2026-12-18",t:"vac"},
+    {e:"LAURENTIN RODRIGUEZ, MANUEL GERARDO",i:"2026-12-21",f:"2026-12-24",t:"vac"},
+    {e:"LAURENTIN RODRIGUEZ, MANUEL GERARDO",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"LEVANO OSORIO, GLORIA ELISABETH",i:"2026-01-02",f:"2026-01-15",t:"vac"},
+    {e:"LEVANO OSORIO, GLORIA ELISABETH",i:"2026-01-16",f:"2026-01-16",t:"vac"},
+    {e:"LEVANO OSORIO, GLORIA ELISABETH",i:"2026-06-12",f:"2026-06-12",t:"vac"},
+    {e:"LEVANO OSORIO, GLORIA ELISABETH",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"LLAMAS AVALOS, JOEL",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"MARTINEZ MARCHAMALO, JAVIER",i:"2026-06-25",f:"2026-06-26",t:"vac"},
+    {e:"MARTINEZ MARCHAMALO, JAVIER",i:"2026-08-17",f:"2026-08-31",t:"vac"},
+    {e:"MARTINEZ MARCHAMALO, JAVIER",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"MONTES PAVON, Antonio Javier",i:"2026-08-24",f:"2026-08-28",t:"vac"},
+    {e:"MONTES PAVON, Antonio Javier",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"NAVARRO RIVERO, MARIA ELENA",i:"2026-01-02",f:"2026-01-09",t:"vac"},
+    {e:"NAVARRO RIVERO, MARIA ELENA",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"QUINTANA ARGERICH, JOSEP MARIA",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"QUINTANA CASAS, MARC",i:"2026-04-01",f:"2026-04-02",t:"vac"},
+    {e:"QUINTANA CASAS, MARC",i:"2026-08-20",f:"2026-08-28",t:"vac"},
+    {e:"QUINTANA CASAS, MARC",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"RAMIREZ ACEVEDO, ASDRUBAL",i:"2026-02-10",f:"2026-02-10",t:"vac"},
+    {e:"RAMIREZ ACEVEDO, ASDRUBAL",i:"2026-05-25",f:"2026-05-29",t:"vac"},
+    {e:"RAMIREZ ACEVEDO, ASDRUBAL",i:"2026-08-10",f:"2026-08-18",t:"vac"},
+    {e:"RAMIREZ ACEVEDO, ASDRUBAL",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"YEPES DOLERA, ELISABET",i:"2026-06-22",f:"2026-06-26",t:"vac"},
+    {e:"YEPES DOLERA, ELISABET",i:"2026-08-10",f:"2026-08-21",t:"vac"},
+    {e:"YEPES DOLERA, ELISABET",i:"2026-08-31",f:"2026-09-04",t:"vac"},
+    {e:"YEPES DOLERA, ELISABET",i:"2026-12-28",f:"2026-12-31",t:"vac"},
+    {e:"ZININI EL OUERIAGHLI, YASSIN",i:"2026-01-02",f:"2026-01-02",t:"vac"},
+    {e:"ZININI EL OUERIAGHLI, YASSIN",i:"2026-01-05",f:"2026-01-05",t:"vac"},
+    {e:"ZININI EL OUERIAGHLI, YASSIN",i:"2026-03-20",f:"2026-03-20",t:"vac"},
+    {e:"ZININI EL OUERIAGHLI, YASSIN",i:"2026-08-20",f:"2026-09-04",t:"vac"},
+    {e:"ZININI EL OUERIAGHLI, YASSIN",i:"2026-12-28",f:"2026-12-31",t:"vac"}
+  ];
+}
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+function loginAdmin(){
+  const pwd=document.getElementById("loginPwd").value;
+  if(pwd===ADMIN_PWD){ isAdmin=true; arrancar(); }
+  else { document.getElementById("loginErr").style.display="block"; document.getElementById("loginPwd").select(); }
+}
+function loginMicrosoft(){ isAdmin=false; arrancar(); }
+function volverLogin(){ document.getElementById("loginScreen").style.display="flex"; }
+
+async function arrancar(){
+  document.getElementById("loginScreen").style.display="none";
+  applyMode();
+  await cargarDeSharePoint();
+}
+
+function applyMode(){
+  document.querySelectorAll(".admin-only").forEach(el=>el.style.display=isAdmin?"":"none");
+  document.getElementById("viewBanner").classList.toggle("show",!isAdmin);
+  document.getElementById("modoLabel").textContent=isAdmin?"🔓 Administrador":"👁 Solo lectura";
+  document.getElementById("modoLabel").style.background=isAdmin?"#16a34a44":"#e67e2244";
+  if(!isAdmin&&(view==="pend"||view==="gestionar")) view="mes";
+  leyenda(); renderStats(); render();
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+const MESES=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const MESC=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+function dept(e){ return PDEPT[PUESTOS[e]]||"Otros"; }
+function col(e){ return DCOL[dept(e)]||"#888"; }
+function sn(e){ const p=e.split(", "); if(p.length<2) return e.substring(0,16); return p[1].split(" ")[0]+" "+p[0].split(" ")[0]; }
+function isWE(y,m,d){ const w=new Date(y,m,d).getDay(); return w===0||w===6; }
+function hexA(h,a){ const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16); return `rgba(${r},${g},${b},${a})`; }
+function fmt(s){ if(!s) return ""; const [y,mo,d]=s.split("-"); return `${d}/${mo}/${y}`; }
+function tipoLabel(t){ return t==="boda"?"Aus. boda":t==="examen"?"Aus. examen":t==="vac"?"Vacaciones":t; }
+function tipoColor(t,c){ return t==="boda"?"#c0392b":t==="examen"?"#e67e22":t==="vac"?c:"#f39c12"; }
+function toggleOtroTipo(){
+  const v=document.getElementById("mTipo").value;
+  document.getElementById("otroTipoLabel").style.display=v==="otro"?"flex":"none";
+  if(v==="otro") document.getElementById("mTipoOtro").focus();
+}
+function diasUsados(e){
+  let n=0;
+  VACS.filter(v=>v.e===e&&v.t==="vac").forEach(v=>{
+    let d=new Date(v.i+"T00:00"); const end=new Date(v.f+"T00:00");
+    while(d<=end){ if(!isWE(d.getFullYear(),d.getMonth(),d.getDate())) n++; d.setDate(d.getDate()+1); }
+  });
+  return n;
+}
+function diasPendientes(e){ return Math.max(0,(MAX[e]||0)-diasUsados(e)); }
+function vacMap(e,y,m){
+  const map={};
+  VACS.forEach((v,idx)=>{ if(v.e!==e) return;
+    let d=new Date(v.i+"T00:00"); const end=new Date(v.f+"T00:00");
+    while(d<=end){ if(d.getFullYear()===y&&d.getMonth()===m) map[d.getDate()]={t:v.t,idx}; d.setDate(d.getDate()+1); }
+  });
+  return map;
+}
+function cntVac(e,y,m){
+  let n=0;
+  VACS.filter(v=>v.e===e).forEach(v=>{
+    let d=new Date(v.i+"T00:00"); const end=new Date(v.f+"T00:00");
+    while(d<=end){ if(d.getFullYear()===y&&d.getMonth()===m&&!isWE(y,m,d.getDate())) n++; d.setDate(d.getDate()+1); }
+  });
+  return n;
+}
+function tieneVacMes(e,y,m){ return cntVac(e,y,m)>0; }
+function tieneVacHoy(e){
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const dow=hoy.getDay();
+  const lunes=new Date(hoy); lunes.setDate(hoy.getDate()-(dow===0?6:dow-1));
+  const domingo=new Date(lunes); domingo.setDate(lunes.getDate()+6);
+  return VACS.some(v=>{ if(v.e!==e) return false;
+    const ini=new Date(v.i+"T00:00"),fin=new Date(v.f+"T00:00");
+    return ini<=domingo&&fin>=lunes;
+  });
+}
+
+// ─── EMPLEADOS ────────────────────────────────────────────────────────────────
+function emps(){
+  return Object.keys(PUESTOS).sort((a,b)=>{
+    const ia=DEPT_ORDER.indexOf(dept(a)),ib=DEPT_ORDER.indexOf(dept(b));
+    if(ia!==ib) return ia-ib;
+    const pa=PUESTOS[a],pb=PUESTOS[b];
+    const rA=pa.startsWith("Jefe")||pa==="CEO"||pa.startsWith("Director")||pa.startsWith("Supervisora")?0:1;
+    const rB=pb.startsWith("Jefe")||pb==="CEO"||pb.startsWith("Director")||pb.startsWith("Supervisora")?0:1;
+    if(rA!==rB) return rA-rB;
+    return a.localeCompare(b);
+  }).filter(e=>{
+    if(hideDept.has(dept(e))) return false;
+    if(filtroEmpVal&&e!==filtroEmpVal) return false;
+    if(filtroMes&&!tieneVacMes(e,2026,mes)) return false;
+    if(filtroHoy&&!tieneVacHoy(e)) return false;
+    return true;
+  });
+}
+
+// ─── FILTROS ──────────────────────────────────────────────────────────────────
+function setFiltroEmp(){ filtroEmpVal=document.getElementById("filtroEmp").value; actualizarBtnReset(); renderStats(); render(); }
+function toggleFiltroMes(){ filtroMes=!filtroMes; if(filtroMes) filtroHoy=false; document.getElementById("btnFiltroMes").classList.toggle("active",filtroMes); document.getElementById("btnFiltroHoy").classList.remove("active"); actualizarBtnReset(); renderStats(); render(); }
+function toggleFiltroHoy(){ filtroHoy=!filtroHoy; if(filtroHoy) filtroMes=false; document.getElementById("btnFiltroHoy").classList.toggle("active",filtroHoy); document.getElementById("btnFiltroMes").classList.remove("active"); actualizarBtnReset(); renderStats(); render(); }
+function resetTodosFiltros(){ filtroEmpVal=""; filtroMes=false; filtroHoy=false; document.getElementById("filtroEmp").value=""; document.getElementById("btnFiltroMes").classList.remove("active"); document.getElementById("btnFiltroHoy").classList.remove("active"); actualizarBtnReset(); renderStats(); render(); }
+function actualizarBtnReset(){ document.getElementById("btnResetFiltro").style.display=(filtroEmpVal||filtroMes||filtroHoy)?"":"none"; }
+
+// ─── LEYENDA ──────────────────────────────────────────────────────────────────
+function leyenda(){
+  const depts=DEPT_ORDER.filter(d=>Object.values(PUESTOS).some(p=>PDEPT[p]===d));
+  let h="";
+  depts.forEach(d=>{h+=`<div class="leg ${hideDept.has(d)?"off":""}" onclick="tgDept('${d}')"><div class="dot" style="background:${DCOL[d]||"#888"}"></div>${d}</div>`;});
+  h+=`<div class="leg" style="cursor:default"><div class="dot" style="background:#c0392b"></div>Boda</div>`;
+  h+=`<div class="leg" style="cursor:default"><div class="dot" style="background:#e67e22"></div>Examen</div>`;
+  h+=`<div class="leg" style="cursor:default"><div class="dot" style="background:#f39c12"></div>Otro</div>`;
+  document.getElementById("leyenda").innerHTML=h;
+}
+
+// ─── STATS ────────────────────────────────────────────────────────────────────
+function renderStats(){
+  const ee=emps();
+  document.getElementById("stats").innerHTML=
+    `<div class="stat"><b>${ee.length}</b>Empleados visibles</div>`+
+    (isAdmin?`<div class="stat warn"><b>${ee.filter(e=>diasPendientes(e)>0).length}</b>Con días pendientes</div><div class="stat err"><b>${Math.round(ee.reduce((s,e)=>s+diasPendientes(e),0))}</b>Días pendientes totales</div>`:"");
+}
+
+// ─── VISTA MENSUAL ────────────────────────────────────────────────────────────
+function renderMes(){
+  const y=2026,m=mes,nd=new Date(y,m+1,0).getDate(),ee=emps(),hoy=new Date();
+  const DS=["D","L","M","X","J","V","S"];
+  let h=`<table><thead><tr><th class="emp">Empleado</th>`;
+  for(let d=1;d<=nd;d++){
+    const we=isWE(y,m,d),isH=hoy.getFullYear()===y&&hoy.getMonth()===m&&hoy.getDate()===d;
+    h+=`<th style="${we?"color:#bbb":""}${isH?";background:#fff3cd":""}">${DS[new Date(y,m,d).getDay()]}<br>${d}</th>`;
+  }
+  h+=`</tr></thead><tbody>`;
+  let curD="";
+  ee.forEach(e=>{
+    const d=dept(e);
+    if(d!==curD){curD=d;h+=`<tr class="dept"><td colspan="${nd+1}" style="color:${DCOL[d]||"#555"}">${d}</td></tr>`;}
+    const vm=vacMap(e,y,m),c=col(e);
+    const pendBadge=isAdmin&&diasPendientes(e)>0?` <span style="background:#fee2e2;color:#b91c1c;border-radius:10px;padding:1px 5px;font-size:10px;font-weight:700">${diasPendientes(e)}p</span>`:"";
+    h+=`<tr><td class="emp" style="border-left:3px solid ${c}" title="${e}">${sn(e)}${pendBadge}<br><span style="font-size:10px;color:#999;font-weight:400">${PUESTOS[e]}</span></td>`;
+    for(let d=1;d<=nd;d++){
+      const we=isWE(y,m,d),entry=vm[d],vt=entry?entry.t:null,idx=entry?entry.idx:null;
+      const isH=hoy.getFullYear()===y&&hoy.getMonth()===m&&hoy.getDate()===d;
+      const bg=we?"background:#f0f0f0":vt?`background:${tipoColor(vt,c)}`:"";
+      const tip=vt?tipoLabel(vt)+" · "+sn(e):"";
+      const click=isAdmin&&!we&&vt!==null?`onclick="openModal('edit',${idx})"`:isAdmin&&!we?`onclick="openModalDia('${e}','2026-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}')"`:"";
+      h+=`<td class="day" style="${isH?"background:#fffbe6":""}" title="${tip}"><div class="blk ${isAdmin&&!we?"clickable":""}" style="${bg}" ${click}></div></td>`;
+    }
+    h+=`</tr>`;
+  });
+  h+=`</tbody></table>`;
+  document.getElementById("cal").innerHTML=h;
+  document.getElementById("mesLabel").textContent=MESES[m]+" 2026";
+  document.getElementById("bPrev").disabled=m===0;
+  document.getElementById("bNext").disabled=m===11;
+  ["bPrev","bNext","mesLabel"].forEach(id=>document.getElementById(id).style.display="");
+}
+
+// ─── VISTA ANUAL ──────────────────────────────────────────────────────────────
+function renderAnual(){
+  const y=2026,ee=emps();
+  let h=`<table><thead><tr><th class="emp">Empleado</th>${MESC.map(m=>`<th>${m}</th>`).join("")}</tr></thead><tbody>`;
+  let curD="";
+  ee.forEach(e=>{
+    const d=dept(e);
+    if(d!==curD){curD=d;h+=`<tr class="dept"><td colspan="13" style="color:${DCOL[d]||"#555"}">${d}</td></tr>`;}
+    const c=col(e);
+    h+=`<tr><td class="emp" style="border-left:3px solid ${c}" title="${e}">${sn(e)}</td>`;
+    for(let m=0;m<12;m++){
+      const cnt=cntVac(e,y,m);
+      if(cnt>0){const a=Math.min(0.3+cnt/15*0.65,0.95);h+=`<td><span class="ann-blk" style="background:${hexA(c,a)};color:${a>0.5?"#fff":c}">${cnt}d</span></td>`;}
+      else h+=`<td><span style="display:block;background:#f5f5f5;border-radius:4px;height:22px"></span></td>`;
+    }
+    h+=`</tr>`;
+  });
+  h+=`</tbody></table>`;
+  document.getElementById("cal").innerHTML=h;
+  ["bPrev","bNext","mesLabel"].forEach(id=>document.getElementById(id).style.display="none");
+}
+
+// ─── VISTA PENDIENTES ─────────────────────────────────────────────────────────
+function renderPend(){
+  const ee=emps().filter(e=>diasPendientes(e)>0).sort((a,b)=>diasPendientes(b)-diasPendientes(a));
+  let h=`<table class="pend-table"><thead><tr><th>Empleado</th><th>Depto</th><th>Puesto</th><th>Máx</th><th>Usados</th><th>Pendientes</th><th>%</th></tr></thead><tbody>`;
+  ee.forEach(e=>{
+    const d=dept(e),c=col(e),mx=MAX[e]||0,us=diasUsados(e),pd=diasPendientes(e),pct=mx>0?Math.round(us/mx*100):0;
+    h+=`<tr><td style="font-weight:600;border-left:3px solid ${c}">${sn(e)}</td><td style="color:${c};font-weight:500">${d}</td><td style="color:#999;font-size:11px">${PUESTOS[e]}</td><td style="text-align:center">${mx}</td><td style="text-align:center">${us.toFixed(1)}</td><td style="text-align:center;font-weight:700;color:${pd>10?"#c0392b":pd>4?"#e67e22":"#27ae60"}">${pd.toFixed(1)}</td><td><div class="bar-bg"><div class="bar-fg" style="width:${pct}%;background:${c}"></div></div></td></tr>`;
+  });
+  if(!ee.length) h+=`<tr><td colspan="7" style="padding:20px;text-align:center;color:#888">✅ Todo planificado</td></tr>`;
+  h+=`</tbody></table>`;
+  document.getElementById("cal").innerHTML=h;
+  ["bPrev","bNext","mesLabel"].forEach(id=>document.getElementById(id).style.display="none");
+}
+
+// ─── VISTA GESTIONAR ──────────────────────────────────────────────────────────
+function renderGestionar(){
+  ["bPrev","bNext","mesLabel"].forEach(id=>document.getElementById(id).style.display="none");
+  let h=`<div style="padding:12px;border-bottom:1px solid #eee;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <label style="font-size:12px;font-weight:600">Filtrar:
+      <select id="gFiltro" onchange="gFiltroChange()" style="margin-left:6px;font-size:13px;padding:4px 8px;border:1px solid #ccc;border-radius:6px">
+        <option value="">— Todos —</option>
+        ${Object.keys(PUESTOS).sort().map(e=>`<option value="${e}" ${gFiltroVal===e?"selected":""}>${sn(e)}</option>`).join("")}
+      </select>
+    </label>
+    <span style="font-size:12px;color:#888">${VACS.length} registros en SharePoint</span>
+  </div>`;
+  const lista=VACS.map((v,i)=>({...v,idx:i})).filter(v=>!gFiltroVal||v.e===gFiltroVal);
+  const grupos={};
+  lista.forEach(v=>{if(!grupos[v.e])grupos[v.e]=[];grupos[v.e].push(v);});
+  h+=`<div style="padding:12px">`;
+  Object.keys(grupos).sort().forEach(emp=>{
+    const c=col(emp),d=dept(emp),pd=diasPendientes(emp),us=diasUsados(emp),mx=MAX[emp]||0;
+    h+=`<div style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+      <div style="width:4px;height:32px;background:${c};border-radius:2px;flex-shrink:0"></div>
+      <div style="flex:1"><div style="font-weight:700;font-size:13px">${emp}</div><div style="font-size:11px;color:#999">${PUESTOS[emp]} · ${d}</div></div>
+      <div style="font-size:12px">${pd>0?`<span style="background:#fee2e2;color:#b91c1c;border-radius:10px;padding:2px 8px;font-weight:700">${pd.toFixed(1)} días pendientes</span>`:`<span style="background:#d1fae5;color:#065f46;border-radius:10px;padding:2px 8px">✓ Completado</span>`}</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#f7f7fb">
+      <th style="padding:5px 8px;text-align:left;border-bottom:1px solid #e0e0e0">Tipo</th>
+      <th style="padding:5px 8px;text-align:left;border-bottom:1px solid #e0e0e0">Inicio</th>
+      <th style="padding:5px 8px;text-align:left;border-bottom:1px solid #e0e0e0">Fin</th>
+      <th style="padding:5px 8px;text-align:center;border-bottom:1px solid #e0e0e0">Acciones</th>
+    </tr></thead><tbody>`;
+    grupos[emp].forEach(v=>{
+      h+=`<tr style="border-bottom:1px solid #f0f0f0">
+        <td style="padding:5px 8px"><span style="background:${tipoColor(v.t,c)};color:#fff;border-radius:4px;padding:2px 7px;font-size:11px">${tipoLabel(v.t)}</span></td>
+        <td style="padding:5px 8px">${fmt(v.i)}</td><td style="padding:5px 8px">${fmt(v.f)}</td>
+        <td style="padding:5px 8px;display:flex;gap:5px;justify-content:center">
+          <button class="edit-btn" style="font-size:11px;padding:3px 10px" onclick="openModal('edit',${v.idx})">✏️ Editar</button>
+          <button class="del-btn" onclick="eliminar(${v.idx})">🗑</button>
+        </td></tr>`;
+    });
+    h+=`</tbody></table></div>`;
+  });
+  h+=`</div>`;
+  document.getElementById("cal").innerHTML=h;
+  const gs=document.getElementById("gFiltro");
+  if(gs) gs.addEventListener("change",()=>{gFiltroVal=gs.value;renderGestionar();});
+}
+function gFiltroChange(){ gFiltroVal=document.getElementById("gFiltro").value; renderGestionar(); }
+
+// ─── MODAL ────────────────────────────────────────────────────────────────────
+function openModal(mode,idx){
+  if(!isAdmin) return;
+  editIdx=(mode==="edit")?idx:null;
+  document.getElementById("modalTitle").textContent=mode==="edit"?"✏️ Editar vacaciones":"＋ Añadir vacaciones";
+  document.getElementById("modalSaveBtn").textContent=mode==="edit"?"✔ Guardar cambios":"✔ Guardar";
+  if(mode==="edit"&&idx!==null){
+    const v=VACS[idx];
+    document.getElementById("mEmp").value=v.e;
+    document.getElementById("mIni").value=v.i;
+    document.getElementById("mFin").value=v.f;
+    const std=["vac","boda","examen"];
+    if(std.includes(v.t)){ document.getElementById("mTipo").value=v.t; document.getElementById("otroTipoLabel").style.display="none"; }
+    else { document.getElementById("mTipo").value="otro"; document.getElementById("mTipoOtro").value=v.t; document.getElementById("otroTipoLabel").style.display="flex"; }
+  } else {
+    document.getElementById("mEmp").value=idx||"";
+    document.getElementById("mIni").value="2026-06-01";
+    document.getElementById("mFin").value="2026-06-05";
+    document.getElementById("mTipo").value="vac";
+    document.getElementById("otroTipoLabel").style.display="none";
+  }
+  document.getElementById("modalBg").classList.add("open");
+}
+function openModalDia(emp,fecha){
+  if(!isAdmin) return;
+  openModal("add",emp||"");
+  document.getElementById("mEmp").value=emp;
+  document.getElementById("mIni").value=fecha;
+  document.getElementById("mFin").value=fecha;
+}
+function closeModal(){ document.getElementById("modalBg").classList.remove("open"); editIdx=null; }
+
+async function modalGuardar(){
+  const e=document.getElementById("mEmp").value;
+  const i=document.getElementById("mIni").value;
+  const f=document.getElementById("mFin").value;
+  let t=document.getElementById("mTipo").value;
+  if(t==="otro"){ const desc=document.getElementById("mTipoOtro").value.trim(); if(!desc){alert("Escribe una descripción"); return;} t=desc; }
+  if(!e||!i||!f){alert("Rellena todos los campos");return;}
+  if(new Date(i)>new Date(f)){alert("La fecha inicio debe ser anterior al fin");return;}
+  
+  document.getElementById("modalSaveBtn").textContent="⏳ Guardando...";
+  document.getElementById("modalSaveBtn").disabled=true;
+  
+  if(editIdx!==null){
+    const spId=VACS[editIdx].spId;
+    VACS[editIdx]={...VACS[editIdx],e,i,f,t};
+    if(spId) await actualizarEnSharePoint(spId,{e,i,f,t});
+  } else {
+    const newId=await guardarEnSharePoint({e,i,f,t});
+    VACS.push({spId:newId,e,i,f,t});
+  }
+  document.getElementById("modalSaveBtn").textContent="✔ Guardar";
+  document.getElementById("modalSaveBtn").disabled=false;
+  closeModal(); renderStats(); render();
+}
+
+async function eliminar(idx){
+  const v=VACS[idx];
+  if(!confirm(`¿Eliminar este período de ${sn(v.e)}?\n${fmt(v.i)} → ${fmt(v.f)}`)) return;
+  if(v.spId) await eliminarDeSharePoint(v.spId);
+  VACS.splice(idx,1);
+  renderStats(); render();
+}
+
+// ─── NAVEGACIÓN ───────────────────────────────────────────────────────────────
+function setView(v){
+  if(!isAdmin&&(v==="pend"||v==="gestionar")) return;
+  view=v;
+  ["bMes","bAnu","bPend"].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove("active");});
+  const map={mes:"bMes",anual:"bAnu",pend:"bPend"};
+  if(map[v]){const el=document.getElementById(map[v]);if(el)el.classList.add("active");}
+  render();
+}
+function tgDept(d){if(hideDept.has(d))hideDept.delete(d);else hideDept.add(d);leyenda();renderStats();render();}
+function prevMes(){if(mes>0){mes--;render();}}
+function nextMes(){if(mes<11){mes++;render();}}
+function render(){
+  if(view==="mes")renderMes();
+  else if(view==="anual")renderAnual();
+  else if(view==="pend")renderPend();
+  else if(view==="gestionar")renderGestionar();
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+const mSel=document.getElementById("mEmp");
+Object.keys(PUESTOS).sort().forEach(e=>{
+  const o=document.createElement("option"); o.value=e; o.textContent=sn(e)+" — "+e; mSel.appendChild(o);
+});
+const fSel=document.getElementById("filtroEmp");
+Object.keys(PUESTOS).sort((a,b)=>{
+  const ia=DEPT_ORDER.indexOf(dept(a)),ib=DEPT_ORDER.indexOf(dept(b));
+  if(ia!==ib) return ia-ib; return a.localeCompare(b);
+}).forEach(e=>{
+  const o=document.createElement("option"); o.value=e; o.textContent=sn(e)+" ("+PUESTOS[e]+")"; fSel.appendChild(o);
+});
+document.getElementById("modalBg").addEventListener("click",function(ev){if(ev.target===this)closeModal();});
+document.getElementById("loginPwd").addEventListener("keydown",function(ev){if(ev.key==="Enter")loginAdmin();});
+</script>
+</body>
+</html>
